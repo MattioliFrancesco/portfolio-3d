@@ -1,6 +1,8 @@
 import { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Float, Environment } from '@react-three/drei';
+import { Environment } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -9,86 +11,99 @@ gsap.registerPlugin(ScrollTrigger);
 export default function Scene() {
   const shardsRef = useRef([]); 
   const meshesRef = useRef([]); 
+  const mainGroupRef = useRef();
   
-  // Triplicati i prismi per la ninfea e le altre forme
   const numShards = 48; 
 
   const layouts = useMemo(() => {
-    const flower = [];
-    const abstract = [];
-    const arch = [];
-    const vortex = [];
+    const iris = [];
+    const microchip = [];
+    const shield = [];
+    const gear = [];
 
     for (let i = 0; i < numShards; i++) {
       
-      // 1. LA NINFEA (4 anelli sfalsati per creare la coppa)
-      let ring, fCount, fIndex, fRadius, fRotX, fScaleY;
-      
-      if (i < 6) {
-        // Cuore chiuso
-        ring = 1; fCount = 6; fIndex = i; fRadius = 0.3; fRotX = 1.3; fScaleY = 0.5;
-      } else if (i < 16) {
-        // Secondo anello
-        ring = 2; fCount = 10; fIndex = i - 6; fRadius = 0.7; fRotX = 0.9; fScaleY = 0.7;
-      } else if (i < 30) {
-        // Terzo anello
-        ring = 3; fCount = 14; fIndex = i - 16; fRadius = 1.2; fRotX = 0.5; fScaleY = 0.9;
-      } else {
-        // Anello esterno disteso
-        ring = 4; fCount = 18; fIndex = i - 30; fRadius = 1.7; fRotX = 0.15; fScaleY = 1.1;
-      }
-
-      const fAngle = (fIndex / fCount) * Math.PI * 2 + (ring * 0.25);
-      
-      flower.push({
-        x: Math.cos(fAngle) * fRadius, 
-        y: Math.sin(fAngle) * fRadius, 
-        z: (4 - ring) * 0.25, // Il centro è più alto rispetto ai bordi
-        rotX: fRotX, 
-        rotY: 0.1, 
-        rotZ: fAngle - Math.PI / 2, 
-        scaleY: fScaleY,
-        scaleX: 0.25 + (ring * 0.05) // Petali stretti che si allargano un po' fuori
+      // 1. HERO: L'Iris / Obiettivo Fotografico
+      const isInner = i < 16;
+      const irisRingSteps = isInner ? 16 : 32;
+      const iAngle = (i % irisRingSteps) / irisRingSteps * Math.PI * 2;
+      const iRadius = isInner ? 1.2 : 2.4;
+      iris.push({
+        x: Math.cos(iAngle) * iRadius,
+        y: Math.sin(iAngle) * iRadius,
+        z: isInner ? 0.5 : 0,
+        rotX: 0,
+        rotY: 0,
+        rotZ: iAngle - Math.PI / 4,
+        scaleX: 0.15,
+        scaleY: isInner ? 0.6 : 1.2
       });
 
-      // 2. RETE LOGICA / ASTRATTA (Codice) - Orbitale complessa
-      if (i < 12) {
-        const oAngle = (i / 12) * Math.PI * 2;
-        abstract.push({
-          x: Math.cos(oAngle) * 0.8, y: Math.sin(oAngle) * 0.8, z: (i % 2 === 0) ? 0.3 : -0.3,
-          rotX: 0.5, rotY: oAngle, rotZ: 0, scaleY: 0.6, scaleX: 0.2
+      // 2. CODICE: Il Microchip (CPU centrale e piste dati)
+      if (i < 16) {
+        // Core 4x4
+        const col = i % 4;
+        const row = Math.floor(i / 4);
+        microchip.push({
+          x: (col - 1.5) * 0.4,
+          y: (row - 1.5) * 0.4,
+          z: 0.2,
+          rotX: 0, rotY: 0, rotZ: 0,
+          scaleX: 0.3, scaleY: 0.3
         });
       } else {
-        const oAngle = ((i - 12) / 36) * Math.PI * 2;
-        abstract.push({
-          x: Math.cos(oAngle) * 2.5, y: Math.sin(oAngle * 3) * 1.2, z: Math.sin(oAngle) * 1.5,
-          rotX: 0.2, rotY: -oAngle, rotZ: 0.5, scaleY: 1.0, scaleX: 0.3
+        // Piste dati
+        const traceIndex = i - 16;
+        const dir = Math.floor(traceIndex / 8);
+        const step = traceIndex % 8;
+        let tX = 0, tY = 0, tRotZ = 0;
+        
+        if (dir === 0) { tX = -1.2 - step * 0.3; tY = (step % 2 === 0 ? 0.2 : -0.2); tRotZ = Math.PI / 2; }
+        if (dir === 1) { tX = 1.2 + step * 0.3; tY = (step % 2 === 0 ? 0.2 : -0.2); tRotZ = Math.PI / 2; }
+        if (dir === 2) { tY = 1.2 + step * 0.3; tX = (step % 2 === 0 ? 0.2 : -0.2); tRotZ = 0; }
+        if (dir === 3) { tY = -1.2 - step * 0.3; tX = (step % 2 === 0 ? 0.2 : -0.2); tRotZ = 0; }
+
+        microchip.push({
+          x: tX, y: tY, z: -0.2,
+          rotX: 0, rotY: 0, rotZ: tRotZ,
+          scaleX: 0.1, scaleY: 0.5
         });
       }
 
-      // 3. ARCO MONUMENTALE (Estetica) - Doppio strato sfalsato
-      const isArchBack = i >= 24;
-      const aIndex = isArchBack ? i - 24 : i;
-      const aAngle = (aIndex / 23) * Math.PI; 
-      arch.push({
-        x: Math.cos(aAngle) * (isArchBack ? 3.5 : 3.2), 
-        y: Math.sin(aAngle) * (isArchBack ? 3.5 : 3.2) - 1.8, 
-        z: isArchBack ? -1.2 : -0.8,
-        rotX: isArchBack ? 0.1 : -0.1, rotY: 0, rotZ: aAngle - Math.PI / 2, 
-        scaleY: 1.2, scaleX: 0.3
+      // 3. ESTETICA: Lo Scudo (Simmetrico, forma a V)
+      const isRightSide = i % 2 === 0;
+      const shieldIndex = Math.floor(i / 2); // da 0 a 23
+      const t = shieldIndex / 23; // da 0 a 1
+      const sX = (isRightSide ? 1 : -1) * (0.2 + t * 2.2);
+      const sY = 1.8 - (t * 2.5) - (t * t * 1.5);
+      shield.push({
+        x: sX,
+        y: sY,
+        z: Math.sin(t * Math.PI) * 0.5,
+        rotX: 0.2,
+        rotY: isRightSide ? -0.2 : 0.2,
+        rotZ: isRightSide ? Math.PI / 6 : -Math.PI / 6,
+        scaleX: 0.2,
+        scaleY: 0.8
       });
 
-      // 4. VORTICE DNA (Dinamiche) - Spirale altissima
-      const vAngle = i * 0.3;
-      vortex.push({
-        x: Math.cos(vAngle) * 1.5, 
-        y: (i - 24) * 0.2, // Più stretto verticalmente per accogliere i 48 pezzi
-        z: Math.sin(vAngle) * 1.5,
-        rotX: Math.PI / 3, rotY: vAngle, rotZ: 0, 
-        scaleY: 1.0, scaleX: 0.3
+      // 4. DINAMICHE: L'Ingranaggio Meccanico
+      const isTooth = i % 2 === 0;
+      const gearPair = Math.floor(i / 2); 
+      const gAngle = (gearPair / 24) * Math.PI * 2;
+      const gRadius = isTooth ? 2.6 : 2.0;
+      gear.push({
+        x: Math.cos(gAngle) * gRadius,
+        y: Math.sin(gAngle) * gRadius,
+        z: isTooth ? 0 : 0.2,
+        rotX: 0,
+        rotY: 0,
+        rotZ: gAngle,
+        scaleX: isTooth ? 0.2 : 0.4,
+        scaleY: isTooth ? 0.6 : 0.2
       });
     }
-    return { flower, abstract, arch, vortex };
+    return { iris, microchip, shield, gear };
   }, [numShards]);
 
   useLayoutEffect(() => {
@@ -97,24 +112,24 @@ export default function Scene() {
         trigger: ".scroll-container",
         start: "top top",
         end: "bottom bottom",
-        scrub: 2, 
+        scrub: 1.5, 
       }
     });
 
     shardsRef.current.forEach((shard, i) => {
       if (!shard) return;
       
-      tl.to(shard.position, { x: layouts.abstract[i].x, y: layouts.abstract[i].y, z: layouts.abstract[i].z, ease: "power1.inOut", duration: 15 }, 10);
-      tl.to(shard.rotation, { x: layouts.abstract[i].rotX, y: layouts.abstract[i].rotY, z: layouts.abstract[i].rotZ, ease: "power1.inOut", duration: 15 }, 10);
+      tl.to(shard.position, { x: layouts.microchip[i].x, y: layouts.microchip[i].y, z: layouts.microchip[i].z, ease: "power2.inOut", duration: 15 }, 10);
+      tl.to(shard.rotation, { x: layouts.microchip[i].rotX, y: layouts.microchip[i].rotY, z: layouts.microchip[i].rotZ, ease: "power2.inOut", duration: 15 }, 10);
 
-      tl.to(shard.position, { x: layouts.arch[i].x, y: layouts.arch[i].y, z: layouts.arch[i].z, ease: "power1.inOut", duration: 15 }, 35);
-      tl.to(shard.rotation, { x: layouts.arch[i].rotX, y: layouts.arch[i].rotY, z: layouts.arch[i].rotZ, ease: "power1.inOut", duration: 15 }, 35);
+      tl.to(shard.position, { x: layouts.shield[i].x, y: layouts.shield[i].y, z: layouts.shield[i].z, ease: "power2.inOut", duration: 15 }, 35);
+      tl.to(shard.rotation, { x: layouts.shield[i].rotX, y: layouts.shield[i].rotY, z: layouts.shield[i].rotZ, ease: "power2.inOut", duration: 15 }, 35);
 
-      tl.to(shard.position, { x: layouts.vortex[i].x, y: layouts.vortex[i].y, z: layouts.vortex[i].z, ease: "power1.inOut", duration: 15 }, 60);
-      tl.to(shard.rotation, { x: layouts.vortex[i].rotX, y: layouts.vortex[i].rotY, z: layouts.vortex[i].rotZ, ease: "power1.inOut", duration: 15 }, 60);
+      tl.to(shard.position, { x: layouts.gear[i].x, y: layouts.gear[i].y, z: layouts.gear[i].z, ease: "power2.inOut", duration: 15 }, 60);
+      tl.to(shard.rotation, { x: layouts.gear[i].rotX, y: layouts.gear[i].rotY, z: layouts.gear[i].rotZ, ease: "power2.inOut", duration: 15 }, 60);
 
-      tl.to(shard.position, { x: layouts.flower[i].x, y: layouts.flower[i].y, z: layouts.flower[i].z, ease: "power1.inOut", duration: 15 }, 85);
-      tl.to(shard.rotation, { x: layouts.flower[i].rotX, y: layouts.flower[i].rotY, z: layouts.flower[i].rotZ, ease: "power1.inOut", duration: 15 }, 85);
+      tl.to(shard.position, { x: layouts.iris[i].x, y: layouts.iris[i].y, z: layouts.iris[i].z, ease: "power2.inOut", duration: 15 }, 85);
+      tl.to(shard.rotation, { x: layouts.iris[i].rotX, y: layouts.iris[i].rotY, z: layouts.iris[i].rotZ, ease: "power2.inOut", duration: 15 }, 85);
     });
 
     return () => tl.kill();
@@ -122,63 +137,60 @@ export default function Scene() {
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
+    const mouseX = state.pointer.x;
+    const mouseY = state.pointer.y;
+
+    if (mainGroupRef.current) {
+      mainGroupRef.current.rotation.y = THREE.MathUtils.lerp(mainGroupRef.current.rotation.y, mouseX * 0.4, 0.05);
+      mainGroupRef.current.rotation.x = THREE.MathUtils.lerp(mainGroupRef.current.rotation.x, -mouseY * 0.4, 0.05);
+    }
+
     meshesRef.current.forEach((mesh, i) => {
       if (!mesh) return;
-      mesh.position.z = Math.sin(time * 1.5 + i * 0.3) * 0.03;
-      mesh.rotation.y = Math.sin(time * 1.2 + i * 0.3) * 0.15;
-      mesh.rotation.x = Math.sin(time * 1.4 + i * 0.3) * 0.1;
+      mesh.position.z += Math.sin(time * 2.0 + i * 0.2) * 0.002;
     });
   });
 
   return (
     <>
-      <Environment preset="city" />
-      <ambientLight intensity={0.5} />
-      
-      <directionalLight position={[0, 0, 10]} intensity={5} color="#ffffff" />
-      <spotLight position={[-8, 10, 8]} intensity={6} color="#ffffff" penumbra={1} angle={0.5} />
-      <spotLight position={[8, -10, -5]} intensity={4} color="#38b6ff" penumbra={1} />
-      <pointLight position={[0, 0, 0]} intensity={3} color="#ffffff" distance={8} />
+      <Environment preset="night" />
+      <ambientLight intensity={0.2} />
+      <directionalLight position={[5, 5, 5]} intensity={1} color="#ffffff" />
+      <spotLight position={[-10, 0, 10]} intensity={25} color="#38b6ff" penumbra={0.2} angle={0.8} />
+      <spotLight position={[10, -5, -5]} intensity={10} color="#0055ff" penumbra={1} />
 
-      <Float speed={1} rotationIntensity={0} floatIntensity={0.5}>
-        {/* Gruppo inclinato all'indietro (-0.5 X) e verso destra (0.5 Y) */}
-        <group rotation={[-0.5, 0.5, 0]}>
-          {layouts.flower.map((props, i) => (
-            <group 
-              key={i} 
-              ref={(el) => (shardsRef.current[i] = el)}
-              position={[props.x, props.y, props.z]}
-              rotation={[props.rotX, props.rotY, props.rotZ]}
+      <group ref={mainGroupRef}>
+        {layouts.iris.map((props, i) => (
+          <group 
+            key={i} 
+            ref={(el) => (shardsRef.current[i] = el)}
+            position={[props.x, props.y, props.z]}
+            rotation={[props.rotX, props.rotY, props.rotZ]}
+          >
+            <mesh
+              ref={(el) => (meshesRef.current[i] = el)}
+              scale={[props.scaleX, props.scaleY, 0.1]}
             >
-              <mesh
-                ref={(el) => (meshesRef.current[i] = el)}
-                scale={[props.scaleX, props.scaleY, 0.04]}
-              >
-                <octahedronGeometry args={[1, 0]} />
-                
-                {/* Il VERO VETRO ANTI-GLITCH con Iridescenza */}
-                <meshPhysicalMaterial
-                  color="#ffffff"
-                  transmission={1}
-                  opacity={1}
-                  transparent={true}
-                  roughness={0.05}
-                  ior={1.45}
-                  thickness={0.5}
-                  envMapIntensity={2.5}
-                  clearcoat={1}
-                  clearcoatRoughness={0.1}
-                  // L'iridescenza crea il prisma cromatico sui bordi 
-                  // senza calcolare le doppie rifrazioni che rompono il WebGL
-                  iridescence={0.8}
-                  iridescenceIOR={1.2}
-                  iridescenceThicknessRange={[100, 400]}
-                />
-              </mesh>
-            </group>
-          ))}
-        </group>
-      </Float>
+              <octahedronGeometry args={[1, 0]} />
+              <meshStandardMaterial
+                color="#0a0a0a"
+                metalness={1}
+                roughness={0.1}
+                emissive="#38b6ff"
+                emissiveIntensity={0.1}
+              />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      <EffectComposer disableNormalPass>
+        <Bloom 
+          luminanceThreshold={0.2} 
+          mipmapBlur 
+          intensity={1.5} 
+        />
+      </EffectComposer>
     </>
   );
 }
