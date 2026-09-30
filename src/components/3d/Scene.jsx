@@ -6,6 +6,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getScrollProgress } from './scroll';
 import Portrait3D from './Portrait3D';
+import MorphingHockeyStickWithFrame from './MorphingHockeyStick';
+import StickShowcase from './StickShowcase';
 import { ACTS } from './acts';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -119,15 +121,47 @@ export default function Scene() {
     return () => tl.kill();
   }, [layouts]);
 
-  // Pointer state for parallax.
+  // Pointer state for parallax + drag-to-orbit with inertia.
   const pointer = useRef({ x: 0, y: 0 });
+  const drag = useRef({ dragging: false, lastX: 0, lastY: 0, velX: 0, velY: 0, yaw: 0, pitch: 0 });
+  const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+
   useEffect(() => {
     const onMove = (e) => {
       pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      const dr = drag.current;
+      if (!dr.dragging) return;
+      const dx = e.clientX - dr.lastX;
+      const dy = e.clientY - dr.lastY;
+      dr.lastX = e.clientX;
+      dr.lastY = e.clientY;
+      dr.velX = dx * 0.005;
+      dr.velY = dy * 0.005;
+      dr.yaw += dr.velX;
+      dr.pitch = THREE.MathUtils.clamp(dr.pitch + dr.velY, -0.6, 0.6);
+    };
+    const onDown = (e) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      drag.current.dragging = true;
+      drag.current.lastX = e.clientX;
+      drag.current.lastY = e.clientY;
+      document.body.classList.add('is-dragging');
+    };
+    const onUp = () => {
+      drag.current.dragging = false;
+      document.body.classList.remove('is-dragging');
     };
     window.addEventListener('pointermove', onMove, { passive: true });
-    return () => window.removeEventListener('pointermove', onMove);
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
   }, []);
 
   const scroll = useRef(0);
@@ -155,14 +189,25 @@ export default function Scene() {
     if (ringInnerRef.current) ringInnerRef.current.material.color.lerp(col, 0.08);
     if (ringOuterRef.current) ringOuterRef.current.material.color.lerp(col, 0.06);
 
-    // ---- Camera: slow dolly + orbit, plus pointer parallax ----
+    // ---- Camera: scroll dolly + drag-to-orbit with inertia + parallax ----
+    const dr = drag.current;
+    if (!dr.dragging) {
+      dr.yaw += dr.velX;
+      dr.pitch = THREE.MathUtils.clamp(dr.pitch + dr.velY, -0.6, 0.6);
+      dr.velX *= 0.93;
+      dr.velY *= 0.93;
+      dr.yaw = damp(dr.yaw, 0, 0.35, d); // gentle spring back
+      dr.pitch = damp(dr.pitch, 0, 0.35, d);
+    }
     const orbit = p * Math.PI * 1.4;
     const radius = 7.4 + Math.sin(p * Math.PI) * 0.9;
     camTarget.set(
-      Math.sin(orbit) * radius * 0.35 + pointer.current.x * 0.9,
-      Math.sin(p * Math.PI * 2) * 0.8 + pointer.current.y * 0.55,
+      Math.sin(orbit) * radius * 0.35 + pointer.current.x * 0.45,
+      Math.sin(p * Math.PI * 2) * 0.8 + pointer.current.y * 0.3,
       radius,
     );
+    camTarget.applyAxisAngle(yAxis, dr.yaw);
+    camTarget.y += dr.pitch * 2.2;
     camera.position.x = damp(camera.position.x, camTarget.x, 3, d);
     camera.position.y = damp(camera.position.y, camTarget.y, 3, d);
     camera.position.z = damp(camera.position.z, camTarget.z, 3, d);
@@ -170,10 +215,10 @@ export default function Scene() {
 
     // ---- Group: gentle drift + parallax tilt ----
     if (groupRef.current) {
-      groupRef.current.rotation.y = t * 0.05 + pointer.current.x * 0.18;
+      groupRef.current.rotation.y = t * 0.05 + pointer.current.x * 0.12 + dr.yaw * 0.25;
       groupRef.current.rotation.x = THREE.MathUtils.lerp(
         groupRef.current.rotation.x,
-        -0.18 + pointer.current.y * 0.12 + p * 0.35,
+        -0.18 + pointer.current.y * 0.08 + p * 0.35 + dr.pitch * 0.2,
         0.05,
       );
       groupRef.current.position.y = Math.sin(t * 0.4) * 0.15 - p * 0.6;
@@ -239,6 +284,13 @@ export default function Scene() {
         <icosahedronGeometry args={[0.28, 1]} />
         <meshBasicMaterial color={ACTS[0].color} />
       </mesh>
+
+      {/* The Grays stick, twice: 3000 assembling particles (act 2)
+          and the textured showpiece (act 3). */}
+      <Suspense fallback={null}>
+        <MorphingHockeyStickWithFrame actColor={actColor} scrollRef={scroll} />
+        <StickShowcase actColor={actColor} scrollRef={scroll} />
+      </Suspense>
 
       {/* Depth-mapped portrait riding slightly in front of the shard cloud.
           Suspense is scoped here so the shard cloud renders instantly

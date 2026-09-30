@@ -19,3 +19,14 @@ export function getScrollProgress() {
 export function getActFloat() {
   return THREE.MathUtils.clamp(getScrollProgress() * 5 - 0.5, 0, 4);
 }
+
+/**
+ * Smoothly interpolate a keyframe array (one value per act) at a
+ * fractional act coordinate t (0…keys.length-1).
+ */
+export function lerpKeys(keys, t) {
+  const clamped = THREE.MathUtils.clamp(t, 0, keys.length - 1);
+  const i = Math.min(Math.floor(clamped), keys.length - 2);
+  const f = clamped - i;
+  return keys[i] + (keys[i + 1] - keys[i]) * f;
+}
