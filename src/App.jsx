@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import Scene from './components/3d/Scene';
+import ErrorBoundary from './components/ErrorBoundary';
 import { ACTS } from './components/3d/acts';
 
 const SECTIONS = [
@@ -64,7 +65,9 @@ function App() {
           dpr={[1, 1.5]}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
         >
-          <Scene />
+          <ErrorBoundary>
+            <Scene />
+          </ErrorBoundary>
         </Canvas>
       </div>
 
@@ -119,6 +122,7 @@ function App() {
                 Download CV
               </a>
             </div>
+            <p className="drag-hint">◈ Drag anywhere to orbit the 3D world</p>
           </div>
           <div className="scroll-hint" aria-hidden="true">
             <span>Scroll</span>
@@ -173,6 +177,7 @@ function App() {
               <li>Control theory</li>
               <li>Physics sim</li>
               <li>Élite sport</li>
+              <li>Interactive 3D</li>
             </ul>
           </div>
         </section>

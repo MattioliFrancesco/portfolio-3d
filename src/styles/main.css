@@ -550,6 +550,30 @@ body::after {
 }
 
 /* ---------------------------------------------------------------
+   3D-first chrome: drag hint + grabbing cursor
+---------------------------------------------------------------- */
+.drag-hint {
+  margin-top: 2.2rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: hintPulse 3s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+}
+
+body.is-dragging .drag-hint { opacity: 1; }
+
+/* ---------------------------------------------------------------
    Reduced motion
 ---------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

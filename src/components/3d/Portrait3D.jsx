@@ -11,9 +11,8 @@ import { ACTS } from './acts';
  * reacts to the environment lighting like a sculpted panel.
  *
  * Scroll behaviour:
- *   act 0 (hero)    → fully visible, centered
- *   acts 1..3       → slides off, fades out
- *   act 4 (contact) → returns from the right as a dimmed backdrop
+ *   acts 0..3 → hidden (the stick and shards own the stage)
+ *   act 4   → returns from the right as a dimmed backdrop
  */
 export default function Portrait3D({ actColor, scrollRef }) {
   const groupRef = useRef();
@@ -42,11 +41,9 @@ export default function Portrait3D({ actColor, scrollRef }) {
     const a = THREE.MathUtils.clamp(p * 5 - 0.3, 0, 4);
     act.current = THREE.MathUtils.damp(act.current, a, 4, d);
 
-    // Soft visibility windows: hero (act 0) and contact (act 4).
-    const inHero = 1 - THREE.MathUtils.smoothstep(act.current, 0.35, 0.85);
+    // Soft visibility window: contact act only.
     const inContact = THREE.MathUtils.smoothstep(act.current, 3.1, 3.8);
-    const target = Math.max(inHero, inContact);
-    vis.current = THREE.MathUtils.damp(vis.current, target, 3.5, d);
+    vis.current = THREE.MathUtils.damp(vis.current, inContact, 3.5, d);
 
     const contact = inContact;
     const targetX = THREE.MathUtils.lerp(0, 3.0, contact);
