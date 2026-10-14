@@ -1,76 +1,424 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anta&display=swap');
+
+/* Registrazione del tuo font personalizzato dalla cartella public */
+@font-face {
+  font-family: 'MattiolisHand';
+  src: url('/MattiolisHand-Regular.ttf') format('truetype'),
+       url('/MattiolisHand-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --accent-red: #ff3344;
+  --accent-red-glow: rgba(255, 51, 68, 0.4);
+  --accent-orange: #ff7a3d;
+  --accent-gradient: linear-gradient(135deg, #ff3344 0%, #ff7a3d 100%);
+  
+  --bg-deep: #070709;
+  --glass-surface: rgba(12, 12, 16, 0.72);
+  --glass-surface-hover: rgba(18, 18, 24, 0.82);
+  --glass-border: rgba(255, 70, 80, 0.18);
+  --glass-border-hover: rgba(255, 70, 80, 0.45);
+  
+  --text-main: #ffffff;
+  --text-muted: #d4d4dc;
+  --text-dim: #9aa0a6;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 body, html {
   margin: 0;
   padding: 0;
-  /* Un bagliore scurissimo in alto a destra che sfuma nel nero assoluto (#020202) */
-  background: radial-gradient(circle at 80% 20%, #14171c 0%, #020202 60%);
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
+  /* Sfondo profondo carbone/nero con lieve alone rosso-cremisi lontano (no blu) */
+  background: radial-gradient(circle at 80% 20%, #1a0a0d 0%, #08080a 55%, #020203 100%);
+  color: var(--text-main);
+  font-family: "Nunito", sans-serif;
+  font-optical-sizing: auto;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased; 
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Canvas Three.js ancorato sullo sfondo */
 .canvas-container {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0;
-}
-
-.scroll-container {
-  position: relative; z-index: 10; pointer-events: none;
-}
-
-.section {
+  top: 0;
+  left: 0;
+  width: 100vw;
   height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Container di scroll per sincronizzarsi con Scene.jsx */
+.scroll-container {
+  position: relative;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Sezioni a tutta altezza per lo scroll trigger */
+.section {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 12vw;
+  padding: 4rem 10vw;
   pointer-events: auto;
+  position: relative;
 }
 
-/* Regole di posizionamento per sfalsare i testi rispetto al 3D */
+/* Allineamenti alternati */
 .center-align { align-items: center; text-align: center; }
-.left-align { align-items: flex-start; text-align: left; }
-.right-align { align-items: flex-end; text-align: right; }
+.left-align   { align-items: flex-start; text-align: left; }
+.right-align  { align-items: flex-end; text-align: right; }
 
+/* Contenitori Glassmorphism */
 .content-box {
-  max-width: 480px;
+  width: 100%;
+  max-width: 580px;
 }
 
-.hero-text h1 {
-  font-size: 4.5vw;
-  font-weight: 300;
-  letter-spacing: 0.15em;
-  margin: 0;
-  text-transform: uppercase;
+.content-box.wide {
+  max-width: 680px;
 }
 
-.hero-text p {
-  color: #38b6ff;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  margin-top: 1rem;
-  font-weight: 600;
+.glass-panel {
+  background: var(--glass-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 35px rgba(255, 51, 68, 0.05);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.content-box h2 {
-  font-size: 2.5rem;
-  font-weight: 300;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-  color: #38b6ff;
+.glass-panel:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 51, 68, 0.12);
 }
 
-.content-box p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #a0a0a0;
-  font-weight: 300;
+/* Font personalizzato */
+.font-hand {
+  font-family: 'MattiolisHand', cursive, sans-serif;
+  letter-spacing: 0.5px;
 }
 
-.content-box strong {
+.section-num {
+  font-size: 1.4rem;
+  color: var(--accent-orange);
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+
+.hero-hand-tag {
+  font-size: 2rem;
+  color: var(--accent-orange);
+  display: inline-block;
+  padding: 1rem !important;
+}
+
+.hero-title {
+  font-family: "Anta", sans-serif;
   color: #ffffff;
+  letter-spacing: 10px !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase;
+  display: inline-block;
+  white-space: nowrap;
+  text-shadow: 0 0 15px rgba(0, 0, 0, 0.664);
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 700;
+}
+
+h2 {
+  font-family: "Anta", sans-serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
   font-weight: 600;
+  margin: 0 0 1.5rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.center-align h2 {
+  justify-content: center;
+}
+
+p {
+  color: var(--text-muted);
+  line-height: 1.7;
+  font-size: 1.05rem;
+  margin: 0 0 1.2rem;
+}
+
+/* Card Interattiva con la Foto */
+.hero-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.photo-interactive-card {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  padding: 10px;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 30px var(--accent-red-glow);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.photo-interactive-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* Timeline & Liste Esperienze */
+.experience-tabs {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.8rem;
+  flex-wrap: wrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stile per i link dentro le descrizioni delle esperienze */
+.exp-content p a {
+  color: var(--accent-orange);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(255, 122, 61, 0.4);
+  transition: all 0.1s ease;
+}
+
+.exp-content p a:hover {
+  border-bottom-style: solid;
+  border-bottom-color: var(--accent-orange);
+  opacity: 0.9;
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+  padding: 0.5rem 1.1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 51, 68, 0.4);
+}
+
+.tab-btn.active {
+  background: rgba(255, 51, 68, 0.15);
+  border-color: var(--accent-red);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(255, 51, 68, 0.3);
+}
+
+.exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.exp-role {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.exp-period {
+  font-size: 0.9rem;
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
+.exp-place {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 0.8rem;
+}
+
+/* Badge e Chip di Competenze */
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background: rgba(255, 51, 68, 0.08);
+  border: 1px solid rgba(255, 51, 68, 0.25);
+  color: #ff9d85;
+  padding: 0.4rem 0.9rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-block;
+  
+}
+/* Timeline Formazione */
+.edu-card {
+  border-left: 2px solid var(--accent-red);
+  padding-left: 1.5rem;
+  margin-bottom: 1.8rem;
+  position: relative;
+  text-align: left;
+}
+
+.edu-card:last-child {
+  margin-bottom: 0;
+}
+
+.edu-card::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 10px var(--accent-red);
+}
+
+.edu-year {
+  font-size: 0.85rem;
+  color: var(--accent-orange);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.edu-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0.2rem 0;
+}
+
+.edu-school {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Sezione Competenze: Griglia */
+.skills-category {
+  margin-bottom: 1.5rem;
+}
+
+.skills-category-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent-orange);
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+/* Sezione Contatti */
+.contact-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 2rem 0 1.5rem;
+}
+
+.contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--accent-gradient);
+  color: #ffffff;
+  padding: 0.85rem 1.8rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(255, 51, 68, 0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.contact-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(255, 51, 68, 0.5);
+}
+
+.contact-btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+
+.contact-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 70, 80, 0.4);
+}
+
+.hand-quote {
+  font-size: 1.45rem;
+  color: var(--accent-orange);
+  margin: 1.5rem 0;
+  line-height: 1.4;
+}
+
+.signature {
+  font-size: 2.2rem;
+  color: #fff;
+  opacity: 0.85;
+  margin-top: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .section {
+    padding: 5rem 6vw;
+  }
+  .glass-panel {
+    padding: 1.8rem;
+  }
+  .center-align, .left-align, .right-align {
+    align-items: center;
+    text-align: center;
+  }
+  .edu-card {
+    text-align: left;
+  }
 }
