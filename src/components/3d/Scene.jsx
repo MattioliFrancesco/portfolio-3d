@@ -7,13 +7,15 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function Scene({ quality = 'high', reducedMotion = false }) {
+export default function Scene({ quality = 'high', reducedMotion = false, onReady }) {
   const shardsRef = useRef([]); 
   const meshesRef = useRef([]); 
+  const readyRef = useRef(false);
+  const invalidate = useThree((state) => state.invalidate);
   const isCompact = useThree((state) => state.size.width < 700);
   
   const ringSizes = useMemo(
-    () => quality === 'low' ? [4, 7, 9, 12] : quality === 'balanced' ? [5, 8, 12, 15] : [6, 10, 14, 18],
+    () => quality === 'low' ? [4, 6, 8, 10] : quality === 'balanced' ? [4, 7, 9, 12] : [6, 10, 14, 18],
     [quality],
   );
   const numShards = ringSizes.reduce((total, count) => total + count, 0);
@@ -130,6 +132,7 @@ export default function Scene({ quality = 'high', reducedMotion = false }) {
             z: layout[i].z,
             ease: 'power1.inOut',
             duration: 1,
+            onUpdate: invalidate,
           }, 0);
           timeline.to(shard.rotation, {
             x: layout[i].rotX,
@@ -137,16 +140,17 @@ export default function Scene({ quality = 'high', reducedMotion = false }) {
             z: layout[i].rotZ,
             ease: 'power1.inOut',
             duration: 1,
+            onUpdate: invalidate,
           }, 0);
         });
       });
     });
 
     return () => context.revert();
-  }, [layouts, reducedMotion]);
+  }, [invalidate, layouts, reducedMotion]);
 
   useFrame((state) => {
-    if (reducedMotion) return;
+    if (reducedMotion || quality !== 'high') return;
     const time = state.clock.elapsedTime;
     meshesRef.current.forEach((mesh, i) => {
       if (!mesh) return;
@@ -170,7 +174,11 @@ export default function Scene({ quality = 'high', reducedMotion = false }) {
         </>
       )}
 
-      <Float speed={reducedMotion ? 0 : 0.65} rotationIntensity={0} floatIntensity={reducedMotion ? 0 : 0.28}>
+      <Float
+        speed={reducedMotion || quality !== 'high' ? 0 : 0.65}
+        rotationIntensity={0}
+        floatIntensity={reducedMotion || quality !== 'high' ? 0 : 0.28}
+      >
         {/* Gruppo inclinato all'indietro (-0.5 X) e verso destra (0.5 Y) */}
         <group
           position={isCompact ? [0.55, 0, 0] : [1.05, 0, 0]}
@@ -187,23 +195,28 @@ export default function Scene({ quality = 'high', reducedMotion = false }) {
               <mesh
                 ref={(el) => (meshesRef.current[i] = el)}
                 scale={[props.scaleX, props.scaleY, 0.04]}
+                onAfterRender={() => {
+                  if (readyRef.current) return;
+                  readyRef.current = true;
+                  onReady?.();
+                }}
               >
                 <octahedronGeometry args={[1, 0]} />
-                {quality === 'low' ? (
+                {quality !== 'high' ? (
                   <meshStandardMaterial color="#d8d4d2" roughness={0.3} metalness={0.08} emissive="#342329" />
                 ) : (
                   <meshPhysicalMaterial
                     color="#ffffff"
-                    transmission={quality === 'balanced' ? 0.55 : 1}
+                    transmission={1}
                     opacity={1}
                     transparent
-                    roughness={quality === 'balanced' ? 0.12 : 0.05}
+                    roughness={0.05}
                     ior={1.45}
-                    thickness={quality === 'balanced' ? 0.25 : 0.5}
-                    envMapIntensity={quality === 'balanced' ? 1.2 : 2.5}
+                    thickness={0.5}
+                    envMapIntensity={2.5}
                     clearcoat={1}
                     clearcoatRoughness={0.1}
-                    iridescence={quality === 'balanced' ? 0.5 : 0.8}
+                    iridescence={0.8}
                     iridescenceIOR={1.2}
                     iridescenceThicknessRange={[100, 400]}
                   />

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
@@ -50,9 +50,27 @@ const skills = [
 ];
 
 const socialLinks = [
-  { label: 'GitHub', href: 'https://github.com/MattioliFrancesco' },
-  { label: 'Instagram', href: 'https://instagram.com/francesco_mattioli__?psln=MWNmZjEweGN2ZXl2eQ%3D%3D' },
+  { label: 'GitHub', handle: '@MattioliFrancesco', href: 'https://github.com/MattioliFrancesco' },
+  { label: 'Instagram', handle: '@francesco_mattioli__', href: 'https://instagram.com/francesco_mattioli__?psln=MWNmZjEweGN2ZXl2eQ%3D%3D' },
 ];
+
+function SocialIcon({ label }) {
+  if (label === 'GitHub') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.32-3.76-1.32-.5-1.29-1.23-1.64-1.23-1.64-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 .1.76 2.32 3.52 1.65.1-.72.39-1.2.7-1.48-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.11-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.29-2.61 5.23-5.1 5.5.4.35.75 1.03.75 2.08v3.09c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle className="social-icon-dot" cx="17.5" cy="6.7" r="1" />
+    </svg>
+  );
+}
 
 function getRenderProfile() {
   const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -60,25 +78,98 @@ function getRenderProfile() {
   const cores = navigator.hardwareConcurrency || 8;
   const memory = navigator.deviceMemory || 8;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const quality = pixelCount > 4_500_000 || cores <= 4 || memory <= 4
+  const quality = pixelCount > 4_000_000 || cores <= 4 || memory <= 4
     ? 'low'
-    : pixelCount > 2_400_000 || cores <= 6
+    : pixelCount > 1_800_000 || cores <= 6
       ? 'balanced'
       : 'high';
 
   return {
     quality,
-    dpr: quality === 'low' ? 0.85 : quality === 'balanced' ? 1 : Math.min(devicePixelRatio, 1.25),
+    dpr: quality === 'low' ? 0.7 : quality === 'balanced' ? 0.85 : Math.min(devicePixelRatio, 1),
     reducedMotion,
   };
 }
 
 export default function App() {
   const appRef = useRef(null);
+  const introTitleRef = useRef(null);
+  const loadingStartedAt = useRef(null);
+  const loadingTimer = useRef(null);
+  const introDismissed = useRef(false);
   const [activeExp, setActiveExp] = useState(0);
   const [activeChapter, setActiveChapter] = useState('inizio');
-  const [copyStatus, setCopyStatus] = useState('idle');
   const [renderProfile, setRenderProfile] = useState(getRenderProfile);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+
+  const completeIntro = useCallback(() => {
+    window.clearTimeout(loadingTimer.current);
+    introDismissed.current = true;
+    setIntroComplete(true);
+  }, []);
+
+  const handleSceneReady = useCallback(() => {
+    if (introDismissed.current) return;
+    const minimumIntroDuration = 1100;
+    const elapsedTime = loadingStartedAt.current === null
+      ? minimumIntroDuration
+      : Date.now() - loadingStartedAt.current;
+    const remainingTime = Math.max(0, minimumIntroDuration - elapsedTime);
+    loadingTimer.current = window.setTimeout(() => setSceneReady(true), remainingTime);
+  }, []);
+
+  useEffect(() => {
+    if (!introComplete) return undefined;
+
+    const timer = window.setTimeout(() => setShowLoadingScreen(false), 650);
+    return () => window.clearTimeout(timer);
+  }, [introComplete]);
+
+  useEffect(() => {
+    loadingStartedAt.current = Date.now();
+    return () => window.clearTimeout(loadingTimer.current);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!sceneReady || introComplete) return undefined;
+
+    if (renderProfile.reducedMotion) {
+      const timer = window.setTimeout(completeIntro, 0);
+      return () => window.clearTimeout(timer);
+    }
+
+    let disposed = false;
+    let split;
+    let animation;
+
+    document.fonts.ready.then(() => {
+      if (disposed || !introTitleRef.current) return;
+
+      split = SplitText.create(introTitleRef.current, {
+        type: 'words,chars',
+        wordsClass: 'loader-word',
+        charsClass: 'loader-char',
+      });
+      animation = gsap.from(split.chars, {
+        autoAlpha: 0,
+        yPercent: 24,
+        rotation: -2.5,
+        transformOrigin: '0% 100%',
+        stagger: 0.055,
+        duration: 0.38,
+        ease: 'power1.out',
+        onComplete: completeIntro,
+      });
+    });
+
+    return () => {
+      disposed = true;
+      animation?.kill();
+      split?.revert();
+    };
+  }, [completeIntro, introComplete, renderProfile.reducedMotion, sceneReady]);
 
   useEffect(() => {
     const updateRenderProfile = () => setRenderProfile(getRenderProfile());
@@ -103,7 +194,7 @@ export default function App() {
       if (disposed || !appRef.current) return;
 
       context.add(() => {
-        appRef.current.querySelectorAll('.font-hand').forEach((element) => {
+        appRef.current.querySelectorAll('.font-hand:not(.intro-loader-title)').forEach((element) => {
           const split = SplitText.create(element, {
             type: 'words,chars',
             wordsClass: 'hand-word',
@@ -157,29 +248,45 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
-  const copyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText('franci.mdnet@gmail.com');
-      setCopyStatus('copied');
-      window.setTimeout(() => setCopyStatus('idle'), 2200);
-    } catch {
-      setCopyStatus('error');
-      window.setTimeout(() => setCopyStatus('idle'), 3000);
-    }
-  };
-
   return (
     <div className="app-container" ref={appRef}>
       <div className="canvas-container" aria-hidden="true">
         <Canvas
+          frameloop={renderProfile.quality === 'high' && !renderProfile.reducedMotion ? 'always' : 'demand'}
           camera={{ position: [0, 0, 7], fov: 45 }}
           dpr={renderProfile.dpr}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
         >
-          <Scene quality={renderProfile.quality} reducedMotion={renderProfile.reducedMotion} />
+          <Scene
+            quality={renderProfile.quality}
+            reducedMotion={renderProfile.reducedMotion}
+            onReady={handleSceneReady}
+          />
         </Canvas>
       </div>
       <div className="cinema-wash" aria-hidden="true" />
+      {showLoadingScreen && (
+        <div
+          className={`intro-loader ${sceneReady ? 'is-writing' : ''} ${introComplete ? 'is-leaving' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Caricamento del portfolio"
+        >
+          <div className="intro-loader-content">
+            <img className="intro-loader-logo" src="/favicon_io/android-chrome-192x192.png" alt="" />
+            <span className="intro-loader-overline">Francesco Mattioli · Portfolio</span>
+            <p className="intro-loader-title font-hand" ref={introTitleRef}>Un mondo di idee prende forma.</p>
+            <div className="intro-loader-track" aria-hidden="true"><span /></div>
+            <span className="intro-loader-status" role="status" aria-live="polite">
+              {sceneReady ? 'Benvenuto.' : 'Sto preparando lo spazio...'}
+            </span>
+            <button className="intro-loader-skip" type="button" onClick={completeIntro}>
+              Salta intro
+              <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <header className="site-header">
         <a className="wordmark font-hand" href="#inizio" aria-label="Francesco Mattioli, inizio">
@@ -397,26 +504,39 @@ export default function App() {
             <span className="closing-location">Pistoia / Firenze · Italia</span>
           </div>
           <div className="closing-main">
-            <span className="kicker"><span className="live-dot" /> Il prossimo capitolo</span>
-            <h2>Hai un’idea?<br /><em>Costruiamola.</em></h2>
-            <div className="contact-row">
-              <button className="email-button" type="button" onClick={copyEmail}>
-                {copyStatus === 'copied' ? 'Email copiata ✓' : copyStatus === 'error' ? 'Copia non riuscita — riprova' : 'franci.mdnet@gmail.com'}
-                <span aria-hidden="true">{copyStatus === 'copied' ? '✓' : '↗'}</span>
-              </button>
-              <a className="phone-link" href="tel:+393314809923">+39 331 480 9923</a>
+            <div className="closing-copy">
+              <span className="kicker"><span className="live-dot" /> Il prossimo capitolo</span>
+              <h2>Hai un’idea?<br /><em>Costruiamola.</em></h2>
+              <nav className="social-links" aria-label="Profili social">
+                {socialLinks.map(({ label, handle, href }) => (
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`Apri il profilo ${label} ${handle}`}>
+                    <SocialIcon label={label} />
+                    <span className="social-handle">{handle}</span>
+                  </a>
+                ))}
+              </nav>
             </div>
-            <nav className="social-links" aria-label="Profili social">
-              <span>Seguimi</span>
-              {socialLinks.map(({ label, href }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer">
-                  {label} <span aria-hidden="true">↗</span>
-                </a>
-              ))}
-            </nav>
+            <form className="contact-form" action="https://formspree.io/f/xvkzvrzd" method="POST">
+              <label>
+                Nome
+                <input type="text" name="name" autoComplete="name" required />
+              </label>
+              <label>
+                La tua email
+                <input type="email" name="email" autoComplete="email" required />
+              </label>
+              <label className="contact-form-message">
+                Il tuo messaggio
+                <textarea name="message" rows="4" required />
+              </label>
+              <button className="contact-submit" type="submit">Invia il messaggio <span aria-hidden="true">↗</span></button>
+            </form>
           </div>
           <footer className="site-footer">
-            <span className="font-hand">Francesco Mattioli</span>
+            <a className="footer-brand" href="#inizio" aria-label="Francesco Mattioli, torna all’inizio">
+              <img src="/favicon_io/android-chrome-192x192.png" alt="" />
+              <span className="font-hand">Francesco Mattioli</span>
+            </a>
             <span>© 2026 · Fatto con curiosità.</span>
             <a href="#inizio">Torna all’inizio ↑</a>
           </footer>
