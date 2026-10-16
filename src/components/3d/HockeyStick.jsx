@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 const MODEL_PATH = '/Meshy_AI_Grays_Hockey_Stick_0925122305_texture.glb';
 
-export default function HockeyStick({ autoRotate }) {
+export default function HockeyStick({ autoRotate, enableRotate = true }) {
   const { scene } = useGLTF(MODEL_PATH);
   const model = useMemo(() => {
     const clone = scene.clone(true);
@@ -57,6 +57,7 @@ export default function HockeyStick({ autoRotate }) {
         autoRotateSpeed={1.2}
         enableDamping
         enablePan={false}
+        enableRotate={enableRotate}
         enableZoom={false}
         maxPolarAngle={2.75}
         minPolarAngle={0.4}

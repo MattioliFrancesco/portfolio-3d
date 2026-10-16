@@ -727,8 +727,12 @@ a:focus-visible {
   margin: 0 auto;
 }
 
-.work-list {
+.work-selector {
   border-top: 1px solid var(--line);
+}
+
+.work-list-instruction {
+  display: none;
 }
 
 .work-tab {
@@ -1206,6 +1210,41 @@ a:focus-visible {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.hockey-object.is-touch-device > div {
+  pointer-events: none !important;
+  touch-action: pan-y !important;
+}
+
+.hockey-object.is-touch-device.is-rotation-enabled > div {
+  pointer-events: auto !important;
+  touch-action: none !important;
+}
+
+.hockey-rotate-toggle {
+  position: absolute;
+  z-index: 2;
+  bottom: 2.05rem;
+  left: 50%;
+  min-height: 42px;
+  padding: 0.55rem 0.9rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 122, 61, 0.55);
+  border-radius: 3px;
+  background: rgba(7, 7, 9, 0.88);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hockey-rotate-toggle[aria-pressed="true"] {
+  border-color: var(--accent-orange);
+  background: rgba(255, 122, 61, 0.2);
+  color: #ffd0b6;
 }
 
 .object-caption {
@@ -1710,6 +1749,44 @@ a:focus-visible {
   .education-layout {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+
+  .work-list-instruction {
+    display: block;
+    margin: 0 0 0.65rem;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+
+  .work-selector {
+    padding: 0.9rem;
+    border: 1px solid rgba(255, 122, 61, 0.2);
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(7, 7, 9, 0.92), rgba(15, 11, 13, 0.84));
+  }
+
+  .work-tab {
+    min-height: 54px;
+    padding: 0.7rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .work-tab + .work-tab {
+    margin-top: 0.5rem;
+  }
+
+  .work-tab.active {
+    padding-left: 0.8rem;
+    border-color: rgba(255, 122, 61, 0.62);
+    background: linear-gradient(100deg, rgba(255, 51, 68, 0.16), rgba(255, 122, 61, 0.08));
+  }
+
+  .work-tab-arrow {
+    color: var(--accent-orange);
+    font-size: 1.15rem;
+    opacity: 1;
   }
 
   .education-intro {

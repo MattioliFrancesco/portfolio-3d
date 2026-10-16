@@ -211,25 +211,21 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
                 }}
               >
                 <octahedronGeometry args={[1, 0]} />
-                {quality === 'low' ? (
-                  <meshStandardMaterial color="#d8d4d2" roughness={0.3} metalness={0.08} emissive="#342329" />
-                ) : (
-                  <meshPhysicalMaterial
-                    color="#ffffff"
-                    transmission={1}
-                    opacity={1}
-                    transparent
-                    roughness={0.05}
-                    ior={1.45}
-                    thickness={0.5}
-                    envMapIntensity={2.5}
-                    clearcoat={1}
-                    clearcoatRoughness={0.1}
-                    iridescence={0.8}
-                    iridescenceIOR={1.2}
-                    iridescenceThicknessRange={[100, 400]}
-                  />
-                )}
+                <meshPhysicalMaterial
+                  color="#ffffff"
+                  transmission={1}
+                  opacity={0.72}
+                  transparent
+                  roughness={0.08}
+                  ior={1.45}
+                  thickness={0.5}
+                  envMapIntensity={quality === 'low' ? 1 : 2.5}
+                  clearcoat={1}
+                  clearcoatRoughness={0.1}
+                  iridescence={0.8}
+                  iridescenceIOR={1.2}
+                  iridescenceThicknessRange={[100, 400]}
+                />
               </mesh>
             </group>
           ))}

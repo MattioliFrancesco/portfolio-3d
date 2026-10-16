@@ -95,6 +95,7 @@ function getRenderProfile() {
     quality,
     dpr,
     reducedMotion,
+    touchDevice: window.matchMedia('(pointer: coarse)').matches,
   };
 }
 
@@ -108,6 +109,7 @@ export default function App() {
   const scrollRefreshTimer = useRef(null);
   const [activeExp, setActiveExp] = useState(0);
   const [activeChapter, setActiveChapter] = useState('inizio');
+  const [hockeyRotationEnabled, setHockeyRotationEnabled] = useState(false);
   const [renderProfile, setRenderProfile] = useState(getRenderProfile);
   const [contactErrors, setContactErrors] = useState({});
   const [sceneReady, setSceneReady] = useState(false);
@@ -225,6 +227,7 @@ export default function App() {
           currentProfile.quality === nextProfile.quality
           && currentProfile.dpr === nextProfile.dpr
           && currentProfile.reducedMotion === nextProfile.reducedMotion
+          && currentProfile.touchDevice === nextProfile.touchDevice
             ? currentProfile
             : nextProfile
         ));
@@ -308,7 +311,9 @@ export default function App() {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
 
         if (!visible) return;
-        setActiveChapter(visible.target.id);
+        const chapterId = visible.target.id;
+        setActiveChapter(chapterId);
+        if (chapterId !== 'chi-sono') setHockeyRotationEnabled(false);
       },
       { threshold: [0.2, 0.45, 0.7], rootMargin: '-10% 0px -10% 0px' },
     );
@@ -424,32 +429,35 @@ export default function App() {
                 <span className="project-open" aria-hidden="true">↗</span>
               </a>
               <a className="project-card project-mario" href="https://mariomarasa.eu" target="_blank" rel="noopener noreferrer">
-                <span className="project-number">02 / MARAZÀ</span>
+                <span className="project-number">02 / MARASÀ</span>
                 <span className="project-monogram font-hand">M<span>.</span></span>
-                <span className="project-info"><strong>Mario Marasa</strong><small>Portfolio personale · Sito web</small></span>
+                <span className="project-info"><strong>Mario Marasà</strong><small>Portfolio personale · Sito web</small></span>
                 <span className="project-open" aria-hidden="true">↗</span>
               </a>
             </div>
           </div>
           <div className="other-work-label"><span>Altre esperienze</span><i /></div>
           <div className="work-layout">
-            <div className="work-list" role="tablist" aria-label="Esperienze professionali">
-              {experiences.map((experience, index) => (
-                <button
-                  key={experience.company}
-                  className={`work-tab ${activeExp === index ? 'active' : ''}`}
-                  id={`experience-tab-${index}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeExp === index}
-                  aria-controls="experience-detail"
-                  onClick={() => setActiveExp(index)}
-                >
-                  <span className="work-tab-number">0{index + 1}</span>
-                  <span>{experience.company}</span>
-                  <span className="work-tab-arrow" aria-hidden="true">↗</span>
-                </button>
-              ))}
+            <div className="work-selector">
+              <p className="work-list-instruction" id="work-list-instruction">Tocca un’esperienza per leggere i dettagli.</p>
+              <div className="work-list" role="tablist" aria-label="Esperienze professionali" aria-describedby="work-list-instruction">
+                {experiences.map((experience, index) => (
+                  <button
+                    key={experience.company}
+                    className={`work-tab ${activeExp === index ? 'active' : ''}`}
+                    id={`experience-tab-${index}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeExp === index}
+                    aria-controls="experience-detail"
+                    onClick={() => setActiveExp(index)}
+                  >
+                    <span className="work-tab-number">0{index + 1}</span>
+                    <span>{experience.company}</span>
+                    <span className="work-tab-arrow" aria-hidden="true">{activeExp === index ? '−' : '+'}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             <article
               className="work-detail"
@@ -548,7 +556,7 @@ export default function App() {
             </div>
             <div className="identity-visuals">
               <div
-                className="hockey-object"
+                className={`hockey-object ${renderProfile.touchDevice ? 'is-touch-device' : ''} ${hockeyRotationEnabled ? 'is-rotation-enabled' : ''}`}
                 role="group"
                 aria-label="Mazza da hockey 3D interattiva"
               >
@@ -561,10 +569,28 @@ export default function App() {
                   <ambientLight intensity={1.5} />
                   <directionalLight position={[3, 4, 5]} intensity={3} color="#fff1e7" />
                   <pointLight position={[-3, -2, 2]} intensity={2} color="#ff684d" />
-                  <HockeyStick autoRotate={activeChapter === 'chi-sono' && !renderProfile.reducedMotion} />
+                  <HockeyStick
+                    autoRotate={activeChapter === 'chi-sono' && !renderProfile.reducedMotion}
+                    enableRotate={!renderProfile.touchDevice || hockeyRotationEnabled}
+                  />
                 </Canvas>
                 <span className="object-caption"><i /> HOCKEY STICK · HC PISTOIA</span>
-                <span className="hockey-hint font-hand">Trascina per ruotare</span>
+                {renderProfile.touchDevice ? (
+                  <button
+                    className="hockey-rotate-toggle"
+                    type="button"
+                    aria-pressed={hockeyRotationEnabled}
+                    aria-label={hockeyRotationEnabled
+                      ? 'Disattiva la rotazione manuale per riprendere lo scroll'
+                      : 'Attiva il trascinamento per ruotare la mazza'}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={() => setHockeyRotationEnabled((enabled) => !enabled)}
+                  >
+                    {hockeyRotationEnabled ? 'Riprendi lo scroll' : 'Ruota la mazza'}
+                  </button>
+                ) : (
+                  <span className="hockey-hint font-hand">Trascina per ruotare</span>
+                )}
               </div>
             </div>
           </div>
