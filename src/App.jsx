@@ -4,6 +4,20 @@ import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Scene from './components/3d/Scene';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ACTS } from './components/3d/acts';
+
+const SECTIONS = [
+  { id: 'act-0', tag: 'Act I — The Machine', align: 'center-align' },
+  { id: 'act-1', tag: 'Act II — Code as Instrument', align: 'left-align' },
+  { id: 'act-2', tag: 'Act III — The Synthesis', align: 'right-align' },
+  { id: 'act-3', tag: 'Act IV — Dynamics', align: 'left-align' },
+  { id: 'act-4', tag: 'Act V — The Cycle', align: 'center-align' },
+];
+
+function App() {
+  const [progress, setProgress] = useState(0);
+  const [activeAct, setActiveAct] = useState(0);
 import HockeyStick from './components/3d/HockeyStick';
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
@@ -326,6 +340,9 @@ export default function App() {
           dpr={renderProfile.dpr}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
         >
+          <ErrorBoundary>
+            <Scene />
+          </ErrorBoundary>
           <Scene
             quality={renderProfile.quality}
             reducedMotion={renderProfile.reducedMotion}
@@ -391,6 +408,7 @@ export default function App() {
                 Entra nel mio mondo <span aria-hidden="true">↓</span>
               </a>
             </div>
+            <p className="drag-hint">◈ Drag anywhere to orbit the 3D world</p>
             <div className="hero-portrait">
               <img src="/foto.png" alt="Francesco Mattioli" />
             </div>
@@ -510,6 +528,21 @@ export default function App() {
           <div className="chapter-foot"><span>03 / 05</span><span>Formazione & competenze</span></div>
         </section>
 
+        <section id="act-3" className="section left-align">
+          <div className="content-box glass tilt" data-act-tag={SECTIONS[3].tag}>
+            <span className="act-index">04</span>
+            <h2>Dynamics &amp; Systems</h2>
+            <p>
+              Whether analyzing models for <strong>Foundations of Automatics</strong>, tuning a custom V12 physics setup
+              in BeamNG.drive, or competing in Serie A Élite field hockey — my focus is always on the logical rules that
+              move the system.
+            </p>
+            <ul className="chip-row">
+              <li>Control theory</li>
+              <li>Physics sim</li>
+              <li>Élite sport</li>
+              <li>Interactive 3D</li>
+            </ul>
         <section className="chapter identity-chapter" id="chi-sono">
           <div className="chapter-heading identity-heading">
             <span className="chapter-index font-hand">04 / Chi sono</span>
