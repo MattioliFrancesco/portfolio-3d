@@ -78,15 +78,22 @@ function getRenderProfile() {
   const cores = navigator.hardwareConcurrency || 8;
   const memory = navigator.deviceMemory || 8;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const quality = pixelCount > 4_000_000 || cores <= 4 || memory <= 4
+  const quality = cores <= 4 || memory <= 4
     ? 'low'
-    : pixelCount > 1_800_000 || cores <= 6
+    : cores <= 6
       ? 'balanced'
       : 'high';
+  const dpr = pixelCount > 4_000_000
+    ? 0.7
+    : quality === 'low'
+      ? 0.7
+      : pixelCount > 1_800_000
+        ? 0.85
+        : Math.min(devicePixelRatio, 1);
 
   return {
     quality,
-    dpr: quality === 'low' ? 0.7 : quality === 'balanced' ? 0.85 : Math.min(devicePixelRatio, 1),
+    dpr,
     reducedMotion,
   };
 }
@@ -97,9 +104,12 @@ export default function App() {
   const loadingStartedAt = useRef(null);
   const loadingTimer = useRef(null);
   const introDismissed = useRef(false);
+  const resizeFrame = useRef(null);
+  const scrollRefreshTimer = useRef(null);
   const [activeExp, setActiveExp] = useState(0);
   const [activeChapter, setActiveChapter] = useState('inizio');
   const [renderProfile, setRenderProfile] = useState(getRenderProfile);
+  const [contactErrors, setContactErrors] = useState({});
   const [sceneReady, setSceneReady] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
@@ -109,6 +119,39 @@ export default function App() {
     introDismissed.current = true;
     setIntroComplete(true);
   }, []);
+
+  const handleContactSubmit = (event) => {
+    const form = event.currentTarget;
+    const name = form.elements.namedItem('name');
+    const email = form.elements.namedItem('email');
+    const message = form.elements.namedItem('message');
+    const errors = {};
+
+    if (!name.value.trim()) errors.name = 'Inserisci il tuo nome.';
+    if (!email.value.trim()) {
+      errors.email = 'Inserisci il tuo indirizzo email.';
+    } else if (email.validity.typeMismatch) {
+      errors.email = 'Controlla il formato dell’indirizzo email.';
+    }
+    if (!message.value.trim()) errors.message = 'Scrivi un messaggio prima di inviarlo.';
+
+    setContactErrors(errors);
+    const firstInvalidField = Object.keys(errors)[0];
+    if (firstInvalidField) {
+      event.preventDefault();
+      form.elements.namedItem(firstInvalidField).focus();
+    }
+  };
+
+  const handleContactChange = (event) => {
+    const { name } = event.target;
+    setContactErrors((currentErrors) => {
+      if (!currentErrors[name]) return currentErrors;
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[name];
+      return nextErrors;
+    });
+  };
 
   const handleSceneReady = useCallback(() => {
     if (introDismissed.current) return;
@@ -172,14 +215,40 @@ export default function App() {
   }, [completeIntro, introComplete, renderProfile.reducedMotion, sceneReady]);
 
   useEffect(() => {
-    const updateRenderProfile = () => setRenderProfile(getRenderProfile());
+    const updateRenderProfile = () => {
+      if (resizeFrame.current !== null) return;
+
+      resizeFrame.current = window.requestAnimationFrame(() => {
+        resizeFrame.current = null;
+        const nextProfile = getRenderProfile();
+        setRenderProfile((currentProfile) => (
+          currentProfile.quality === nextProfile.quality
+          && currentProfile.dpr === nextProfile.dpr
+          && currentProfile.reducedMotion === nextProfile.reducedMotion
+            ? currentProfile
+            : nextProfile
+        ));
+      });
+    };
+    const handleResize = () => {
+      updateRenderProfile();
+      window.clearTimeout(scrollRefreshTimer.current);
+      scrollRefreshTimer.current = window.setTimeout(() => {
+        scrollRefreshTimer.current = null;
+        ScrollTrigger.refresh();
+      }, 150);
+    };
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    window.addEventListener('resize', updateRenderProfile);
+    window.addEventListener('resize', handleResize);
     motionPreference.addEventListener('change', updateRenderProfile);
 
     return () => {
-      window.removeEventListener('resize', updateRenderProfile);
+      window.removeEventListener('resize', handleResize);
       motionPreference.removeEventListener('change', updateRenderProfile);
+      if (resizeFrame.current !== null) {
+        window.cancelAnimationFrame(resizeFrame.current);
+      }
+      window.clearTimeout(scrollRefreshTimer.current);
     };
   }, []);
 
@@ -252,7 +321,7 @@ export default function App() {
     <div className="app-container" ref={appRef}>
       <div className="canvas-container" aria-hidden="true">
         <Canvas
-          frameloop={renderProfile.quality === 'high' && !renderProfile.reducedMotion ? 'always' : 'demand'}
+          frameloop={renderProfile.quality !== 'low' && !renderProfile.reducedMotion ? 'always' : 'demand'}
           camera={{ position: [0, 0, 7], fov: 45 }}
           dpr={renderProfile.dpr}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
@@ -478,7 +547,11 @@ export default function App() {
               </blockquote>
             </div>
             <div className="identity-visuals">
-              <div className="hockey-object" role="group" aria-label="Mazza da hockey 3D interattiva">
+              <div
+                className="hockey-object"
+                role="group"
+                aria-label="Mazza da hockey 3D interattiva"
+              >
                 <Canvas
                   frameloop={activeChapter === 'chi-sono' && !renderProfile.reducedMotion ? 'always' : 'demand'}
                   camera={{ position: [0, 0, 4.2], fov: 38 }}
@@ -516,18 +589,51 @@ export default function App() {
                 ))}
               </nav>
             </div>
-            <form className="contact-form" action="https://formspree.io/f/xvkzvrzd" method="POST">
+            <form
+              className="contact-form"
+              action="https://formspree.io/f/xvkzvrzd"
+              method="POST"
+              noValidate
+              onSubmit={handleContactSubmit}
+              onChange={handleContactChange}
+            >
+              {Object.keys(contactErrors).length > 0 && (
+                <p className="contact-form-feedback" role="alert">Controlla i campi evidenziati e riprova.</p>
+              )}
               <label>
                 Nome
-                <input type="text" name="name" autoComplete="name" required />
+                <input
+                  type="text"
+                  name="name"
+                  autoComplete="name"
+                  required
+                  aria-invalid={contactErrors.name ? 'true' : undefined}
+                  aria-describedby={contactErrors.name ? 'contact-name-error' : undefined}
+                />
+                {contactErrors.name && <span className="contact-field-error" id="contact-name-error">{contactErrors.name}</span>}
               </label>
               <label>
                 La tua email
-                <input type="email" name="email" autoComplete="email" required />
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  aria-invalid={contactErrors.email ? 'true' : undefined}
+                  aria-describedby={contactErrors.email ? 'contact-email-error' : undefined}
+                />
+                {contactErrors.email && <span className="contact-field-error" id="contact-email-error">{contactErrors.email}</span>}
               </label>
               <label className="contact-form-message">
                 Il tuo messaggio
-                <textarea name="message" rows="4" required />
+                <textarea
+                  name="message"
+                  rows="4"
+                  required
+                  aria-invalid={contactErrors.message ? 'true' : undefined}
+                  aria-describedby={contactErrors.message ? 'contact-message-error' : undefined}
+                />
+                {contactErrors.message && <span className="contact-field-error" id="contact-message-error">{contactErrors.message}</span>}
               </label>
               <button className="contact-submit" type="submit">Invia il messaggio <span aria-hidden="true">↗</span></button>
             </form>
@@ -535,7 +641,7 @@ export default function App() {
           <footer className="site-footer">
             <a className="footer-brand" href="#inizio" aria-label="Francesco Mattioli, torna all’inizio">
               <img src="/favicon_io/android-chrome-192x192.png" alt="" />
-              <span className="font-hand">Francesco Mattioli</span>
+              <span className="font-hand footer-signature">Francesco Mattioli</span>
             </a>
             <span>© 2026 · Fatto con curiosità.</span>
             <a href="#inizio">Torna all’inizio ↑</a>

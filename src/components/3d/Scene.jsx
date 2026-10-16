@@ -107,19 +107,28 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
       { title: '#lavoro .chapter-heading h2', layout: layouts.abstract },
       { title: '#percorso .chapter-heading h2', layout: layouts.arch },
       { title: '#chi-sono .identity-heading h2', layout: layouts.vortex },
-      { title: '#contatti .closing-main h2', layout: layouts.flower },
+      { title: '#contatti .closing-main h2', layout: layouts.flower, finishAtPageEnd: true },
     ];
     const context = gsap.context(() => {
-      stages.forEach(({ title, layout }) => {
+      stages.forEach(({ title, layout, finishAtPageEnd = false }) => {
         const heading = document.querySelector(title);
         if (!heading) return;
+        const getEndPosition = () => {
+          const headerHeight = Number.parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+          ) || 76;
+          const headingPosition = heading.getBoundingClientRect().top + window.scrollY - headerHeight;
+          const pageEnd = document.documentElement.scrollHeight - window.innerHeight;
+
+          return finishAtPageEnd ? Math.max(0, Math.min(headingPosition, pageEnd)) : headingPosition;
+        };
 
         const timeline = gsap.timeline({
           scrollTrigger: {
             trigger: heading,
-            start: 'top 60%',
-            end: 'top 40%',
-            scrub: 1,
+            start: () => getEndPosition() - window.innerHeight * 0.9,
+            end: getEndPosition,
+            scrub: true,
             invalidateOnRefresh: true,
           },
         });
@@ -150,7 +159,7 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
   }, [invalidate, layouts, reducedMotion]);
 
   useFrame((state) => {
-    if (reducedMotion || quality !== 'high') return;
+    if (reducedMotion || quality === 'low') return;
     const time = state.clock.elapsedTime;
     meshesRef.current.forEach((mesh, i) => {
       if (!mesh) return;
@@ -162,7 +171,7 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
 
   return (
     <>
-      {quality === 'high' && <Environment preset="city" />}
+      {quality !== 'low' && <Environment preset="city" />}
       <ambientLight intensity={0.5} />
       
       <directionalLight position={[0, 0, 10]} intensity={quality === 'low' ? 3 : 5} color="#ffffff" />
@@ -175,9 +184,9 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
       )}
 
       <Float
-        speed={reducedMotion || quality !== 'high' ? 0 : 0.65}
+        speed={reducedMotion || quality === 'low' ? 0 : 0.65}
         rotationIntensity={0}
-        floatIntensity={reducedMotion || quality !== 'high' ? 0 : 0.28}
+        floatIntensity={reducedMotion || quality === 'low' ? 0 : 0.28}
       >
         {/* Gruppo inclinato all'indietro (-0.5 X) e verso destra (0.5 Y) */}
         <group
@@ -202,7 +211,7 @@ export default function Scene({ quality = 'high', reducedMotion = false, onReady
                 }}
               >
                 <octahedronGeometry args={[1, 0]} />
-                {quality !== 'high' ? (
+                {quality === 'low' ? (
                   <meshStandardMaterial color="#d8d4d2" roughness={0.3} metalness={0.08} emissive="#342329" />
                 ) : (
                   <meshPhysicalMaterial
