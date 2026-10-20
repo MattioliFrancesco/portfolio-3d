@@ -534,7 +534,7 @@ export default function App() {
               <div className="identity-interests">
                 <article className="identity-interest">
                   <span className="identity-interest-number">01</span>
-                  <div><h3>Hockey su prato</h3><p>Gioco in Serie A con l’HC Pistoia. In campo ritrovo spirito di squadra, fiducia e voglia di migliorare.</p>
+                  <div><h3>Hockey su prato</h3><p>Ho giocato in serie B, A2 e A1 con l’HC Pistoia del quale sono giocatore da più di 16 anni. In campo ritrovo spirito di squadra, fiducia e voglia di migliorare.</p>
                     <a className="text-link club-link" href="https://www.hcpistoia.it/" target="_blank" rel="noopener noreferrer">
                       HC Pistoia · sito ufficiale <span aria-hidden="true">↗</span>
                     </a>
