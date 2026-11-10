@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Analytics } from '@vercel/analytics/react';
 import Scene from './components/3d/Scene';
 import HockeyStick from './components/3d/HockeyStick';
 
@@ -675,6 +676,7 @@ export default function App() {
           <div className="chapter-foot"><span>05 / 05</span><span>Fine della presentazione · inizio della conversazione</span></div>
         </section>
       </main>
+      <Analytics />
     </div>
   );
 }
