@@ -112,6 +112,7 @@ export default function App() {
   const [hockeyRotationEnabled, setHockeyRotationEnabled] = useState(false);
   const [renderProfile, setRenderProfile] = useState(getRenderProfile);
   const [contactErrors, setContactErrors] = useState({});
+  const [contactStatus, setContactStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error'
   const [sceneReady, setSceneReady] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
@@ -122,7 +123,9 @@ export default function App() {
     setIntroComplete(true);
   }, []);
 
-  const handleContactSubmit = (event) => {
+  const handleContactSubmit = async (event) => {
+    event.preventDefault(); // Blocca sempre il redirect nativo del form
+
     const form = event.currentTarget;
     const name = form.elements.namedItem('name');
     const email = form.elements.namedItem('email');
@@ -140,12 +143,36 @@ export default function App() {
     setContactErrors(errors);
     const firstInvalidField = Object.keys(errors)[0];
     if (firstInvalidField) {
-      event.preventDefault();
       form.elements.namedItem(firstInvalidField).focus();
+      return;
+    }
+
+    // Invio tramite fetch senza ricaricare la pagina
+    setContactStatus('submitting');
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {
+          Accept: 'application/json', // Fondamentale per evitare il redirect di Formspree
+        },
+      });
+
+      if (response.ok) {
+        setContactStatus('success');
+        form.reset(); // Svuota i campi
+      } else {
+        setContactStatus('error');
+      }
+    } catch {
+      setContactStatus('error');
     }
   };
 
   const handleContactChange = (event) => {
+    if (contactStatus !== 'idle') setContactStatus('idle'); // Nasconde eventuali vecchi avvisi quando si riscrive
+
     const { name } = event.target;
     setContactErrors((currentErrors) => {
       if (!currentErrors[name]) return currentErrors;
@@ -154,6 +181,7 @@ export default function App() {
       return nextErrors;
     });
   };
+
 
   const handleSceneReady = useCallback(() => {
     if (introDismissed.current) return;
@@ -225,9 +253,9 @@ export default function App() {
         const nextProfile = getRenderProfile();
         setRenderProfile((currentProfile) => (
           currentProfile.quality === nextProfile.quality
-          && currentProfile.dpr === nextProfile.dpr
-          && currentProfile.reducedMotion === nextProfile.reducedMotion
-          && currentProfile.touchDevice === nextProfile.touchDevice
+            && currentProfile.dpr === nextProfile.dpr
+            && currentProfile.reducedMotion === nextProfile.reducedMotion
+            && currentProfile.touchDevice === nextProfile.touchDevice
             ? currentProfile
             : nextProfile
         ));
@@ -260,7 +288,7 @@ export default function App() {
 
     let disposed = false;
     const splits = [];
-    const context = gsap.context(() => {}, appRef);
+    const context = gsap.context(() => { }, appRef);
 
     document.fonts.ready.then(() => {
       if (disposed || !appRef.current) return;
@@ -617,7 +645,7 @@ export default function App() {
             </div>
             <form
               className="contact-form"
-              action="https://formspree.io/f/xvkzvrzd"
+              action="https://formspree.io"
               method="POST"
               noValidate
               onSubmit={handleContactSubmit}
@@ -626,6 +654,17 @@ export default function App() {
               {Object.keys(contactErrors).length > 0 && (
                 <p className="contact-form-feedback" role="alert">Controlla i campi evidenziati e riprova.</p>
               )}
+              {contactStatus === 'success' && (
+                <p className="contact-form-feedback is-success" role="status">
+                  Messaggio inviato! Ti risponderò al più presto.
+                </p>
+              )}
+              {contactStatus === 'error' && (
+                <p className="contact-form-feedback" role="alert">
+                  Errore durante l’invio. Riprova tra poco.
+                </p>
+              )}
+
               <label>
                 Nome
                 <input
@@ -638,6 +677,7 @@ export default function App() {
                 />
                 {contactErrors.name && <span className="contact-field-error" id="contact-name-error">{contactErrors.name}</span>}
               </label>
+
               <label>
                 La tua email
                 <input
@@ -650,6 +690,7 @@ export default function App() {
                 />
                 {contactErrors.email && <span className="contact-field-error" id="contact-email-error">{contactErrors.email}</span>}
               </label>
+
               <label className="contact-form-message">
                 Il tuo messaggio
                 <textarea
@@ -661,8 +702,14 @@ export default function App() {
                 />
                 {contactErrors.message && <span className="contact-field-error" id="contact-message-error">{contactErrors.message}</span>}
               </label>
-              <button className="contact-submit" type="submit">Invia il messaggio <span aria-hidden="true">↗</span></button>
+
+              <button className="contact-submit" type="submit" disabled={contactStatus === 'submitting'}>
+                {contactStatus === 'submitting' ? 'Invio in corso...' : 'Invia il messaggio'}{' '}
+                <span aria-hidden="true">↗</span>
+              </button>
             </form>
+
+
           </div>
           <footer className="site-footer">
             <a className="footer-brand" href="#inizio" aria-label="Francesco Mattioli, torna all’inizio">

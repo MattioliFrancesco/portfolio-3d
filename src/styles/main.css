@@ -1337,6 +1337,10 @@ a:focus-visible {
   grid-column: 1 / -1;
   margin: 0;
 }
+.contact-form-feedback.is-success {
+  color: #8ee5a1;
+}
+
 
 .contact-form [aria-invalid="true"] {
   border-color: #ff7469;
