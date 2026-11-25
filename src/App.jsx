@@ -151,7 +151,7 @@ export default function App() {
     setContactStatus('submitting');
 
     try {
-      const response = await fetch(form.action, {
+      const response = await fetch('https://formspree.io/f/xvkzvrzd', {
         method: 'POST',
         body: new FormData(form),
         headers: {
